@@ -1,3 +1,7 @@
+### Breaking Changes
+
+- Raise MSRV to 1.75.
+
 ## Release 0.9.0
 
 ### Breaking Changes
