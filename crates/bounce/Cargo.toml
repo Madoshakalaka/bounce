@@ -17,6 +17,7 @@ anymap2 = "0.13.0"
 once_cell = "1.18.0"
 wasm-bindgen = "0.2.87"
 yew = "0.21"
+yew-hooks = "0.3.3"
 bounce-macros = { path = "../bounce-macros", version = "0.9.0" }
 futures = "0.3.28"
 
