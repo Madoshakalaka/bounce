@@ -7,6 +7,8 @@ use yew::platform::pinned::oneshot;
 use yew::prelude::*;
 use yew::suspense::{Suspension, SuspensionResult};
 
+use yew_hooks::use_is_first_mount;
+
 use super::query_states::{
     QuerySelector, QuerySlice, QuerySliceAction, QuerySliceValue, RunQuery, RunQueryInput,
 };
@@ -212,9 +214,9 @@ where
 {
     let id = *use_memo((), |_| Id::new());
     let value_state = use_input_selector_value::<QuerySelector<T>>(input.clone());
+
     let dispatch_state = use_slice_dispatch::<QuerySlice<T>>();
     let run_query = use_future_notion_runner::<RunQuery<T>>();
-    // tracing::debug!("value_state: {value_state:?}");
 
     let value = use_memo(value_state.clone(), |v| match v.value {
         Some(QuerySliceValue::Loading { .. }) | None => Err(Suspension::new()),
@@ -234,7 +236,6 @@ where
         let run_query = run_query.clone();
 
         use_memo((), move |_| {
-            tracing::debug!("use_query::<{}>::run_query", std::any::type_name::<T>());
             run_query(RunQueryInput {
                 id,
                 input: input.clone(),
@@ -248,10 +249,14 @@ where
         let input = input.clone();
         let run_query = run_query.clone();
 
-        use_effect_with(
-            (id, input, value_state.clone()),
-            move |(id, input, value_state)| {
-                if matches!(value_state.value, Some(QuerySliceValue::Outdated { .. })) {
+        let is_first = use_is_first_mount();
+
+        use_memo(
+            (is_first, id, input, value_state.clone()),
+            move |(is_first, id, input, value_state)| {
+                if matches!(value_state.value, Some(QuerySliceValue::Outdated { .. }))
+                    || (value_state.value.is_none() && !*is_first)
+                {
                     run_query(RunQueryInput {
                         id: *id,
                         input: input.clone(),
@@ -259,8 +264,6 @@ where
                         is_refresh: false,
                     });
                 }
-
-                || {}
             },
         );
     }

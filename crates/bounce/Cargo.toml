@@ -19,6 +19,7 @@ wasm-bindgen = "0.2.87"
 yew = "0.21"
 bounce-macros = { path = "../bounce-macros", version = "0.9.0" }
 futures = "0.3.28"
+yew-hooks = "0.3.3"
 
 gloo = { version = "0.11.0", features = ["futures"], optional = true }
 html-escape = { version = "0.2.13", optional = true }

@@ -5,6 +5,7 @@ use serde::ser::Serialize;
 use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yew::suspense::{Suspension, SuspensionResult};
+use yew_hooks::use_is_first_mount;
 
 use super::query_states::{
     QuerySelector, QuerySlice, QuerySliceAction, QuerySliceValue, RunQuery, RunQueryInput,
@@ -191,10 +192,15 @@ where
         let input = input.clone();
         let run_query = run_query.clone();
 
-        use_effect_with(
-            (id, input, value_state.clone()),
-            move |(id, input, value_state)| {
-                if matches!(value_state.value, Some(QuerySliceValue::Outdated { .. })) {
+        let is_first = use_is_first_mount();
+
+        use_memo(
+            (is_first, id, input, value_state.clone()),
+            move |(is_first, id, input, value_state)| {
+                if matches!(
+                    value_state.value,
+                    Some(QuerySliceValue::Outdated { .. })
+                ) || (value_state.value.is_none() && !*is_first){
                     run_query(RunQueryInput {
                         id: *id,
                         input: input.clone(),
