@@ -214,6 +214,7 @@ where
     let value_state = use_input_selector_value::<QuerySelector<T>>(input.clone());
     let dispatch_state = use_slice_dispatch::<QuerySlice<T>>();
     let run_query = use_future_notion_runner::<RunQuery<T>>();
+    // tracing::debug!("value_state: {value_state:?}");
 
     let value = use_memo(value_state.clone(), |v| match v.value {
         Some(QuerySliceValue::Loading { .. }) | None => Err(Suspension::new()),
@@ -233,6 +234,7 @@ where
         let run_query = run_query.clone();
 
         use_memo((), move |_| {
+            tracing::debug!("use_query::<{}>::run_query", std::any::type_name::<T>());
             run_query(RunQueryInput {
                 id,
                 input: input.clone(),
