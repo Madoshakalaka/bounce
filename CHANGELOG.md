@@ -1,5 +1,6 @@
 ### Breaking Changes
 
+- Removed async_trait requirement from query and mutation traits 
 - Raise MSRV to 1.75.
 
 ## Release 0.9.0
