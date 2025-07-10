@@ -5,7 +5,6 @@ use serde::ser::Serialize;
 use wasm_bindgen::UnwrapThrowExt;
 use yew::prelude::*;
 use yew::suspense::{Suspension, SuspensionResult};
-use yew_hooks::use_is_first_mount;
 
 use super::query_states::{
     QuerySelector, QuerySlice, QuerySliceAction, QuerySliceValue, RunQuery, RunQueryInput,
@@ -155,19 +154,6 @@ where
         .clone()
     };
 
-    let value = use_memo(value_state.clone(), |v| match v.value {
-        Some(QuerySliceValue::Loading { .. }) | None => Err(Suspension::new()),
-        Some(QuerySliceValue::Completed { id, result: ref m }) => {
-            Ok((id, Rc::new(QueryState::Completed { result: m.clone() })))
-        }
-        Some(QuerySliceValue::Outdated { id, result: ref m }) => Ok((
-            id,
-            Rc::new(QueryState::Refreshing {
-                last_result: m.clone(),
-            }),
-        )),
-    });
-
     {
         let input = input.clone();
         let run_query = run_query.clone();
@@ -188,19 +174,43 @@ where
         });
     }
 
+    // Run the query synchronously when value is None to avoid suspension loop
+    {
+        let input = input.clone();
+        let run_query = run_query.clone();
+        
+        if value_state.value.is_none() {
+            run_query(RunQueryInput {
+                id,
+                input: input.clone(),
+                sender: Rc::default(),
+                is_refresh: false,
+            });
+        }
+    }
+
+    let value = use_memo(value_state.clone(), |v| match v.value {
+        Some(QuerySliceValue::Loading { .. }) | None => Err(Suspension::new()),
+        Some(QuerySliceValue::Completed { id, result: ref m }) => {
+            Ok((id, Rc::new(QueryState::Completed { result: m.clone() })))
+        }
+        Some(QuerySliceValue::Outdated { id, result: ref m }) => Ok((
+            id,
+            Rc::new(QueryState::Refreshing {
+                last_result: m.clone(),
+            }),
+        )),
+    });
+
     {
         let input = input.clone();
         let run_query = run_query.clone();
 
-        let is_first = use_is_first_mount();
-
-        use_memo(
-            (is_first, id, input, value_state.clone()),
-            move |(is_first, id, input, value_state)| {
-                if matches!(
-                    value_state.value,
-                    Some(QuerySliceValue::Outdated { .. })
-                ) || (value_state.value.is_none() && !*is_first){
+        use_effect_with(
+            (id, input, value_state.clone()),
+            move |(id, input, value_state)| {
+                // Only handle Outdated state in effect (None is handled synchronously above)
+                if matches!(value_state.value, Some(QuerySliceValue::Outdated { .. })) {
                     run_query(RunQueryInput {
                         id: *id,
                         input: input.clone(),
